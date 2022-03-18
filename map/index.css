@@ -10,6 +10,7 @@ html,body {
 }
 .container {
   display: flex;
+  position: relative;
   height: 100%;
   width: 100%;
   user-select: none;
@@ -58,4 +59,20 @@ html,body {
   padding: 0 5px !important;
   color: #ffffff !important;
   background-color: rgba(0,0,0,0.7)!important;
+}
+
+.container .save {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 5px 15px;
+  border-radius: 3px;
+  background: #4ad170;
+  color: #ffffff;
+  cursor: pointer;
+  z-index: 99;
+}
+
+.container .save:hover {
+  background: #38bd5d;
 }

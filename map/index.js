@@ -150,7 +150,6 @@ window.onload = function () {
 
   function initList() {
     const instances = Object.values(params.instances);
-    localStorage.setItem('map_instances', JSON.stringify(instances));
     let html = '';
     instances.forEach(({ id, label }) => {
       html += `<div class="side-instance ${id===selectedId?'selected':''}" id=${id}>${label || '未命名'}</div>`;
@@ -295,6 +294,11 @@ window.onload = function () {
     map.addEventListener('mousemove', mouseMove, true);
   }
 
+  function saveResult() {
+    const instances = Object.values(params.instances);
+    localStorage.setItem('map_instances', JSON.stringify(instances));
+  }
+
   map.addEventListener('tilesloaded', function () {
     if (params.ready === false) {
       let saveInstances = localStorage.getItem('map_instances');
@@ -314,4 +318,5 @@ window.onload = function () {
     }
   });
   document.getElementById('side-toolName').addEventListener('click', handleClickSide, true);
+  document.getElementById('save').addEventListener('click', saveResult, true);
 }
