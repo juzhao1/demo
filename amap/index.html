@@ -7,7 +7,7 @@
   <title>地图建筑标注</title>
   <script src="https://projecteng.oss-cn-shanghai.aliyuncs.com/a9_js/react/16.14.0/react.production.min.js"></script>
   <script src="https://projecteng.oss-cn-shanghai.aliyuncs.com/a9_js/react/16.14.0/react-dom.production.min.js"></script>
-  <script type="text/javascript" src="https://api.map.baidu.com/api?v=1.0&type=webgl&ak=mDkRItGEfLtytLT5FlNSgKzlHyBuzm1K"></script>
+  <script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.15&key=9ff782c2cfceda7d8eebe3657151c8b1&plugin=AMap.PolyEditor"></script>
   <script src="https://cdn.bootcdn.net/ajax/libs/antd/4.19.2/antd.min.js"></script>
   <link href="https://cdn.bootcdn.net/ajax/libs/antd/4.19.2/antd.min.css" rel="stylesheet">
   <link rel="stylesheet" href="./index.css" />
@@ -17,9 +17,19 @@
     <div class="side" id="side-toolName"></div>
     <div class="map" id="map-toolName"></div>
     <div class="save" id="save">保存</div>
+    <div id="picker_layer">
+      <div class="picker"></div>
+      <div class="color_sure">确定</div>
+    </div>
   </div>
 </body>
 <script src="https://unpkg.com/uuid@latest/dist/umd/uuidv4.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+<script src="./acolorpicker.js"></script>
+<script type="text/javascript">
+  window._AMapSecurityConfig = {
+    securityJsCode:'7524add9dffc67754dcf2f84056165ba',
+  }
+</script>
 <script src="./index.js"></script>
 </html>

@@ -17,8 +17,14 @@ const payload = {
     strokeOpacity: 1,
     strokeWeight: 2,
   },
+  categories: [
+      '宾馆酒店', '厂园区','公众住宅','基础设施','交通枢纽','景区','汽车服务','学校',
+      '商贸综合体','商务楼宇','沿街商铺','医院','政府或大型企业单位办公楼','专业市场'
+  ],
   ...flowData,
 };
+
+console.log(flowData)
 
 /* new script ------------------------------------------ */
 const loadReact = new Promise((resolve, reject) => {
@@ -28,13 +34,6 @@ const loadReact = new Promise((resolve, reject) => {
   script.onload = () => { resolve('loadReact'); };
 });
 
-const loadScreenFull = new Promise((resolve, reject) => {
-  const script = document.createElement('script');
-  script.src = 'https://projecteng.oss-cn-shanghai.aliyuncs.com/a9_js/screenfull.js/1.0.0/screenfull.js';
-  document.head.appendChild(script);
-  script.onload = () => { resolve('loadScreenFull'); };
-});
-
 const loadReactDom = new Promise((resolve, reject) => {
   const script = document.createElement('script');
   script.src = 'https://projecteng.oss-cn-shanghai.aliyuncs.com/a9_js/react/16.14.0/react-dom.production.min.js';
@@ -42,11 +41,26 @@ const loadReactDom = new Promise((resolve, reject) => {
   script.onload = () => { resolve('loadReactDom'); };
 });
 
+const loadScreenFull = new Promise((resolve, reject) => {
+  const script = document.createElement('script');
+  script.src = 'https://projecteng.oss-cn-shanghai.aliyuncs.com/a9_js/screenfull.js/1.0.0/screenfull.js';
+  document.head.appendChild(script);
+  script.onload = () => { resolve('loadScreenFull'); };
+});
+
+
 const loadBmap = new Promise((resolve, reject) => {
   const script = document.createElement('script');
   script.src = 'https://api.map.baidu.com/api?v=1.0&type=webgl&ak=mDkRItGEfLtytLT5FlNSgKzlHyBuzm1K';
   document.head.appendChild(script);
   script.onload = () => { resolve('loadBmap'); };
+});
+
+const loadMap = new Promise((resolve, reject) => {
+  const script = document.createElement('script');
+  script.src = 'https://api.map.baidu.com/getscript?type=webgl&v=1.0&ak=mDkRItGEfLtytLT5FlNSgKzlHyBuzm1K&services=';
+  document.head.appendChild(script);
+  script.onload = () => { resolve('loadMap'); };
 });
 
 const loadTurf = new Promise((resolve, reject) => {
@@ -56,15 +70,30 @@ const loadTurf = new Promise((resolve, reject) => {
   script.onload = () => { resolve('loadTurf'); };
 });
 
+// const loadAntd = new Promise((resolve, reject) => {
+//   const script = document.createElement('script');
+//   script.src = 'https://projecteng.oss-cn-shanghai.aliyuncs.com/a9_js/antd/3.19.3/antd.min.js';
+//   document.head.appendChild(script);
+//   script.onload = () => { resolve('loadAntd'); };
+// });
+
+// const loadAntdStyle = new Promise((resolve, reject) => {
+//   const link = document.createElement('link');
+//   link.setAttribute('rel', 'stylesheet');
+//   link.setAttribute('href', 'https://projecteng.oss-cn-shanghai.aliyuncs.com/a9_js/antd/3.19.3/antd.css');
+//   document.head.appendChild(link);
+//   link.onload = () => { resolve('loadAntdStyle'); };
+// });
+
 const loadWindow = new Promise((resolve, reject) => {
   resolve('loadWindow');
 });
 
 let BMapGL;
-Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWindow]).then((result) => {
+Promise.all([loadReact, loadReactDom, loadBmap, loadMap, loadTurf, loadScreenFull, loadWindow]).then((result) => {
   const isQA = (toolMode) => (toolMode === 'QA' || toolMode === 'QA_RW' || toolMode === 'QA_RO');
 
-  class TextAnnotationApp extends React.Component {
+  class MapAnnotationApp extends React.Component {
     toolName = 'map-annotation';
 
     map = null;
@@ -87,27 +116,31 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
     // mouse in bounds
     enableCreate = false;
 
+    categories = [];
+
     selectedOverlay = undefined;
+
+    tip_label = null;
 
     constructor() {
       super();
       this.state = {
         instances: {},
         selectedId: undefined,
+        selectedCategory: '',
       };
     }
 
     componentWillMount() {
       console.log('payload==>', payload);
       console.log('{{TOOL_MODE}}', '{{JOB_ID}}');
-      const { instances, center, bounds } = payload;
+      const { instances, center, bounds, categories } = payload;
       // 加载标注结果/预标注数据
       if (instances) {
         const instanceMap = {};
         (typeof instances === 'string' ? JSON.parse(instances) : instances).forEach(i => {
           instanceMap[i.id] = i;
         });
-        if (center)
         this.setState({ instances: instanceMap });
       }
       if (center) {
@@ -116,24 +149,29 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
       if (bounds) {
         this.bounds = typeof bounds === 'string' ? JSON.parse(bounds) : bounds;
       }
+      if (categories) {
+        this.categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
+      }
+      
+      this.setState({ selectedCategory: this.categories[0] })
     }
 
     componentDidMount() {
-      console.log(window.BMapGL, window.BMap);
+      BMapGL = window.BMapGL;
       this.initMap();
     }
 
     initMap = () => {
       if (!BMapGL) return;
-      this.map = new BMapGL.Map("map-toolName");
+      this.map = new BMapGL.Map("map-content_{{{RECORD_ID}}}");
       // 创建地图实例 
       const point = new BMapGL.Point(this.center[0], this.center[1]);
       // 创建点坐标 
       this.map.centerAndZoom(point, 15);
       // 初始化地图，设置中心点坐标和地图级别
-      this.map.setMapStyleV2({     
-          styleId: '410d6cafd8e5592b7d3886ae848cfab0'
-      });
+    //   this.map.setMapStyleV2({     
+    //       styleId: '410d6cafd8e5592b7d3886ae848cfab0'
+    //   });
       this.map.enableScrollWheelZoom();
       this.map.disableDoubleClickZoom();
       this.map.addEventListener('tilesloaded', () => {
@@ -147,6 +185,8 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
     
     initKeyEvent = () => {
         document.addEventListener('keydown', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
           const key = e.code.toLocaleLowerCase();
           if(key === 'space') {
             this.handleCreate();
@@ -157,6 +197,7 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
           } else if (key === 'keyo') {
             this.handleLabel();
           }
+          
         });
         this.map.addEventListener('mousedown', this.mapMouseDown, true);
         this.map.addEventListener('mousemove', this.mapMouseMove, true);
@@ -164,13 +205,16 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
     
     loadData = () => {
         const remoteBackup = document.getElementById('map_{{{RECORD_ID}}}').value;
-        const localBackup = window.sessionStorage.getItem(`${this.toolName}_{{JOB_ID}}_{{TASK_ID}}_{{RECORD_ID}}_{{WORKER_ID}}`);
+        const localBackup = window.localStorage.getItem(`${this.toolName}_{{JOB_ID}}_{{TASK_ID}}_{{RECORD_ID}}_{{WORKER_ID}}`);
         let instanceMap;
         if (localBackup || remoteBackup !== '') {
             instanceMap = {};
-            JSON.parse(localBackup || remoteBackup).forEach(i => {
+            const { bounds, center, instances } = JSON.parse(localBackup || remoteBackup);
+            instances.forEach(i => {
                 instanceMap[i.id] = i;
             });
+            this.bounds = bounds;
+            this.center = center;
         }
         this.setState({
             ...instanceMap && {
@@ -194,13 +238,14 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
         this.map.clearOverlays();
         this.initBounds();
         for (let i = 0; i < instances.length; i++) {
-          const { id, lnglats, label } = instances[i];
+          const { id, lnglats, label, category } = instances[i];
           const shapePoints = lnglats.map((point) => new BMapGL.Point(point[0], point[1]));
           const polygon = new BMapGL.Polygon(shapePoints, {...overlayOptions, fillOpacity: 0.1});
           polygon.id = id;
+          polygon.category = category;
           polygon.addEventListener('click', (e) => {
             if (!this.isCreate) {
-              this.setSelectedId(e.target.id);
+              this.setSelectedId(id, category);
             }
           })
           this.map.addOverlay(polygon);
@@ -209,7 +254,7 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
             const centroid = turf.centerOfMass(turfPolygon);
             if (centroid) {
               const { geometry: { coordinates } } = centroid;
-              this.createLabel(label, coordinates, `label_${id}`);
+              this.createLabel(`${category}-${label}`, coordinates, `label_${id}`);
             }
           }
 
@@ -231,15 +276,18 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
           fillOpacity: 0.05,
         });
         this.map.addOverlay(boundaryPolygon);
+        console.log('initBounds==>');
         boundaryPolygon.addEventListener('mouseout', this.mouseOut, true);
         boundaryPolygon.addEventListener('mouseover', this.mouseOver, true);
     }
     
     mouseOut = () => {
+      console.log('out');
       this.enableCreate = false;
     }
     
     mouseOver = () => {
+      console.log('over');
       this.enableCreate = true;
     }
     
@@ -251,7 +299,7 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
           this.drawPoints = this.points.concat([[...currentPoint]]).map((p) => new BMapGL.Point(p[0], p[1]));
           if (this.points.length === 1) {
             this.selectedOverlay = new BMapGL.Polygon(this.drawPoints, payload.overlayOptions);
-            map.addOverlay(this.selectedOverlay);
+            this.map.addOverlay(this.selectedOverlay);
           } else {
             this.selectedOverlay.setPath(this.drawPoints);
           }
@@ -262,30 +310,41 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
       if (!BMapGL) return;
         if (this.isCreate) {
           const currentPoint = new BMapGL.Point(e.latlng.lng, e.latlng.lat);
-          if (selectedOverlay && this.enableCreate) {
-            selectedOverlay.setPositionAt(this.drawPoints.length - 1, currentPoint);
+          if (this.selectedOverlay && this.enableCreate) {
+            this.selectedOverlay.setPositionAt(this.drawPoints.length - 1, currentPoint);
           }
-          if (tip_label) {
-            map.removeOverlay(tip_label);
+          if (this.tip_label) {
+            this.map.removeOverlay(this.tip_label);
           }
           const label = this.enableCreate ?
             (this.points.length > 0 ? '单击绘制下一个点，回车完成绘制' : '单击确认起点') :
             '超出标注区域边界';
-          tip_label = new BMapGL.Label(label, {
+          this.tip_label = new BMapGL.Label(label, {
               position: currentPoint, // 指定文本标注所在的地理位置
               offset: new BMapGL.Size(10, 10) // 设置文本偏移量
           });
-          tip_label.setStyle(payload.labelOptions);
-          map.addOverlay(tip_label);
+          this.tip_label.setStyle(payload.labelOptions);
+          this.map.addOverlay(this.tip_label);
         }
     }
     
-    setSelectedId = (id) => {
+    setSelectedId = (id, c) => {
+      this.setSelectedCategory(c);
       if (id !== this.state.selectedId) {
-          this.setState({selectedId: id}, () => {
+          this.setState({
+              selectedId: id,
+          }, () => {
               this.drawShapes();
           })
       }
+    }
+    
+    setSelectedCategory = (c) => {
+        if (c !== this.state.selectedCategory) {
+            this.setState({
+                selectedCategory: c,
+            })
+        }
     }
 
     setSelectedOverlay = (overlay) => {
@@ -300,7 +359,7 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
         overlay.addEventListener('lineupdate', this.overlayUpdate);
         this.selectedOverlay = overlay;
       }
-      this.setSelectedId(overlay ? overlay.id : undefined);
+      this.setSelectedId(overlay?.id, overlay?.category || this.state.selectedCategory);
     }
     
     createLabel = (label, point, className) => {
@@ -358,16 +417,17 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
     initStatus = () => {
       this.points = [];
       this.isCreate = !this.isCreate;
-      this.map.maskLayer.style.cursor = this.state.isCreate ? 'crosshair' : '';
+      this.map.maskLayer.style.cursor = this.isCreate ? 'crosshair' : '';
     }
 
     createComplete = () => {
         const { isCreate, points, selectedOverlay } = this;
+        const { selectedCategory } = this.state;
         if (isCreate) {
           if (points.length > 2 && selectedOverlay) {
             const id = `${new Date().valueOf()}`;
-            this.setInstance(id, { id, lnglats: [...points] });
-            this.setSelectedId(id);
+            this.setInstance(id, { id, lnglats: [...points], category: selectedCategory });
+            this.setSelectedId(id, selectedCategory);
             this.initStatus();
             this.handleLabel();
           } else {
@@ -380,19 +440,20 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
         const { instances, selectedId } = this.state;
         const selectedInstance = instances[selectedId];
         if (selectedInstance) {
-          const { id, label, lnglats } = selectedInstance;
+          const { id, label, lnglats, category } = selectedInstance;
           const input = prompt("建筑物名称：", label || '');
           if (input !== label && input !== null) {
+            const newLabel = `${category}-${input}`;
             const labelDom = document.getElementsByClassName(`label_${id}`)[0];
             if (labelDom) {
-              labelDom.innerHTML = input;
-              labelDom.style.display = !!input ? 'inline' : 'none';
-            } else if (input) {
+              labelDom.innerHTML = newLabel;
+              labelDom.style.display = !!newLabel ? 'inline' : 'none';
+            } else if (newLabel) {
               const turfPolygon = turf.polygon([[...lnglats, [...lnglats[0]]]]);
               const centroid = turf.centerOfMass(turfPolygon);
               if (centroid) {
                 const { geometry: { coordinates } } = centroid;
-                this.createLabel(input, coordinates, `label_${id}`);
+                this.createLabel(newLabel, coordinates, `label_${id}`);
               }
             }
             this.setInstance(id, { ...selectedInstance, label: input })
@@ -408,28 +469,55 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
         bounds: this.bounds,
       };
       document.getElementById('map_{{{RECORD_ID}}}').value = JSON.stringify(data);
-      window.sessionStorage.setItem(`${this.toolName}_{{JOB_ID}}_{{TASK_ID}}_{{RECORD_ID}}_{{WORKER_ID}}`, JSON.stringify(data));
-      if (type === 'save') {
-       alert('保存成功，请勿关闭页面！');
-      }
+      window.localStorage.setItem(`${this.toolName}_{{JOB_ID}}_{{TASK_ID}}_{{RECORD_ID}}_{{WORKER_ID}}`, JSON.stringify(data));
+      alert(type === 'save'?'保存成功！' : '提交成功！');
     };
 
     render() {
-      const { instances } = this.state;
+      const { instances, selectedId, selectedCategory } = this.state;
+      const categoryInstanceMap = {};
+      Object.values(instances).forEach((i) => {
+          if (categoryInstanceMap[i.category]) {
+              categoryInstanceMap[i.category].push(i);
+          } else {
+            categoryInstanceMap[i.category] = [i];
+          }
+      });
       return React.createElement(
         'div',
         { className: 'map-wrapper' },
         React.createElement(
           'div',
           { className: 'map-side' },
-          Object.values(instances).map((v) => React.createElement(
+          this.categories.map((c, m) => React.createElement(
             'div',
             {
-              key: v.id,
-              className: `side-instance ${id===selectedId?'selected':''}`,
-              onClick: () => { this.setSelectedId(v.id); }
+              key: `${c}-${m}`,
+              className: 'side-category'
             },
-            `${label || '未命名'}`
+            React.createElement(
+                'div',
+                {
+                    className: `label ${c===selectedCategory?'selected':''}`,
+                    onClick: () => { this.setSelectedId(undefined, c); }
+                },
+                `${c || ''} ${categoryInstanceMap[c]?.length || 0}`,
+            ),
+            c===selectedCategory && React.createElement(
+                'div',
+                {
+                    className: 'instances',
+                },
+                categoryInstanceMap[c]?.map((v) => React.createElement(
+                    'div',
+                    {
+                      key: v.id,
+                      className: `side-instance ${v.id===selectedId?'selected':''}`,
+                      onClick: () => { this.setSelectedId(v.id, v.category); }
+                    },
+                    `${v.label || '未命名'}`
+                 ))
+            ),
           ))
         ),
         React.createElement(
@@ -438,12 +526,27 @@ Promise.all([loadBmap, loadTurf, loadReact, loadReactDom, loadScreenFull, loadWi
             id: 'map-content_{{{RECORD_ID}}}',
             className: 'map-content'
           },
+        ),
+        React.createElement(
+          'div',
+          {
+            className: 'save-btn',
+            onClick: () => { this.saveData('save'); }
+          },
+          '保存'
+        ),
+        React.createElement(
+          'div',
+          {
+            className: 'map-tip',
+          },
+          'Space: 开始新建；Enter：新建完成；Delete/BackSpace：删除；o：编辑名称'
         )
       );
     }
   }
 
-  ReactDOM.render(React.createElement(TextAnnotationApp, { payload }), document.getElementById('map-annotation-app_{{{RECORD_ID}}}'));
+  ReactDOM.render(React.createElement(MapAnnotationApp, { payload }), document.getElementById('map-annotation-app_{{{RECORD_ID}}}'));
 }).catch((error) => {
   console.log(error);
 });
