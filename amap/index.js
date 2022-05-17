@@ -13,11 +13,11 @@ const data = {
   tip_label: undefined,
   points: [],
   drawPoints: [],
-  polygonChild: [],
   isCreatePolyon: false,
-  isCreateCluster: false,
   clusterId: undefined,
-  colorContainer: undefined
+  colorContainer: undefined,
+  showLabel: true,
+  hoverId: undefined
 }
 
 const randomColor = () => `#${Math.random().toString(16).substr(2, 6)}`;
@@ -94,9 +94,11 @@ function drawList() {
             direction: 'center',
           },
           offset: new AMap.Pixel(-7, -7),
-          content: `<div class="amap-icon" style="background-color: ${color || data.default}"></div>`
+          content: `<div class="amap-icon ${data.clusterId === id ? 'selected' : ''} ${isCreate ? 'cluster' : ''}" style="background-color: ${color || data.default}"></div>`
         });
         marker.on('rightclick', clusterMark);
+        marker.on('mouseout', onMarkMouseout);
+        marker.on('mouseover', onMarkMouseover);
         data.markers[key].push(marker);
       }
     })
@@ -133,6 +135,20 @@ function clusterMark(e) {
   }
 }
 
+function onMarkMouseover({ lnglat, target }) {
+  if (!data.showLabel && !data.isCreatePolyon) {
+    showTip(new AMap.LngLat(lnglat.lng, lnglat.lat), target.getLabel().content);
+    data.hoverId = target.w.id;
+  }
+}
+
+function onMarkMouseout({target}) {
+  if (!data.showLabel && !data.isCreatePolyon && data.tip_label ) {
+    data.map.remove(data.tip_label);
+    data.tip_label = undefined;
+  }
+}
+
 function clearList() {
   Object.keys(data.positions).forEach((key) => {
     if (data.markers[key]?.length) data.map.remove(data.markers[key]);
@@ -143,8 +159,6 @@ function mapMousemove(e) {
   const { lnglat } = e;
   if (data.isCreatePolyon) {
     drawPolyon(lnglat)
-  } else if (data.isCreateCluster) {
-
   }
 }
 
@@ -154,7 +168,7 @@ function mapMousedown(e) {
     if (data.isCreatePolyon) {
       addPolyonPoint(lnglat);
     }
-  } else if (originEvent.button === 2){ // right click
+  } else if (originEvent.button === 2) { // right click
     // console.log('right click')
   }
 }
@@ -216,12 +230,16 @@ function drawPolyon(lnglat) {
     data.polygon.on('click', handlePolyonClick);
   }
 
+  showTip(point, data.points.length > 0 ? '单击绘制下一个点，回车完成绘制' : '单击确认起点')
+}
+
+function showTip(point, tip) {
   if (data.tip_label) {
     data.tip_label.setPosition(point);
-    data.tip_label.setText(data.points.length > 0 ? '单击绘制下一个点，回车完成绘制' : '单击确认起点');
+    data.tip_label.setText(tip);
   } else {
     data.tip_label = new AMap.Text({
-      text: data.points.length > 0 ? '单击绘制下一个点，回车完成绘制' : '单击确认起点',
+      text: tip,
       style:{
         "margin-bottom": '20px',
         'background-color': "#FFFBCC",
@@ -237,7 +255,6 @@ function drawPolyon(lnglat) {
     });
     data.map.add(data.tip_label)
   }
-
 }
 
 function handlePolyonClick({ lnglat }) {
@@ -359,8 +376,6 @@ function clearPolyon(destory = true) {
 function handleFinish() {
   if (data.isCreatePolyon) {
     finishPolyon();
-  } else if (data.isCreateCluster) {
-    console.log('创建聚类点完成')
   }
 }
 
@@ -373,6 +388,7 @@ function handleEditLabel() {
 }
 
 function handleVisibleLabel() {
+  data.showLabel = !data.showLabel;
   data.container.classList.toggle('no_label');
 }
 

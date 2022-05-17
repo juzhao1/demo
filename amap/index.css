@@ -55,9 +55,21 @@ html,body {
 }
 
 .container .map .amap-icon {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
+  box-sizing: content-box;
+}
+
+.container .map .amap-icon.cluster {
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 20px 2px #666666;
+  border: 4px solid #ffffff;
+}
+
+.container .map .amap-icon.selected {
+  border-color: #FFFF00;
 }
 
 .container .map .amap-marker-label {
