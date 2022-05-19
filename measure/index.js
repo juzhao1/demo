@@ -83,7 +83,7 @@ function mapMousemove(e) {
       const [start, end] = data.horizontalLine;
       const { geometry: { coordinates } } = turf.midpoint(turf.point([start.lng, start.lat]), turf.point([end.lng, end.lat]));
       const rotate = Math.atan((end.lat - start.lat)/(end.lng - start.lng));
-      toggleFix(new AMap.LngLat(coordinates[0]-(Math.sin(rotate) * 0.0016), coordinates[1]+(Math.cos(rotate) * 0.0016)), rotate * 180 / Math.PI);
+      toggleFix(new AMap.LngLat(coordinates[0]-(Math.sin(rotate) * 0.001), coordinates[1]+(Math.cos(rotate) * 0.001)), rotate * 180 / Math.PI);
       // toggleFix(new AMap.LngLat(coordinates[0], coordinates[1]), rotate * 180 / Math.PI);
     } else if (data.verticalLine.length === 2) {
       data.rangingBtn.innerHTML = '清除测量';
