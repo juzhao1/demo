@@ -1,0 +1,139 @@
+* {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-sizing: border-box;
+}
+html,body {
+  height: 100%;
+  width: 100%;
+}
+.container {
+  display: flex;
+  position: relative;
+  height: 100%;
+  width: 100%;
+  user-select: none;
+}
+
+.container .side {
+  width: 300px;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+  padding-bottom: 30px;
+  border-right: 1px solid #e5e5e5;
+}
+
+.container .side .side-instance {
+  padding: 10px;
+  border-bottom: 1px solid #e5e5e5;
+  color: #444444;
+  cursor: pointer;
+}
+.container .side .side-instance.selected {
+  background-color: #eeeeee;
+  color: rgb(24, 122, 250);
+}
+
+.container .side .side-instance:hover {
+  background-color: #eeeeee;
+}
+
+.container .side ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.container .side::-webkit-scrollbar-thumb {
+  background:#686d79;
+}
+
+.container .map {
+  height: 100%;
+  flex: 1;
+}
+
+.container .map .amap-icon {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  box-sizing: content-box;
+}
+
+.container .map .amap-icon.cluster {
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 20px 2px #666666;
+  border: 4px solid #ffffff;
+}
+
+.container .map .amap-icon.selected {
+  border-color: #FFFF00;
+}
+
+.container .map .amap-marker-label {
+  border: none !important;
+  padding: 0 5px !important;
+  color: #ffffff !important;
+  background-color: rgba(0,0,0,0.7)!important;
+  top: -10px !important;
+}
+
+.container .map.no_label .amap-marker-label {
+  display: none;
+}
+
+.container .btn {
+  position: absolute;
+  padding: 5px 15px;
+  border-radius: 3px;
+  color: #ffffff;
+  cursor: pointer;
+  z-index: 99;
+}
+
+.container .save {
+  top: 20px;
+  right: 20px;
+  background: #4ad170;
+}
+
+.container .ranging {
+  top: 20px;
+  right: 20px;
+  background: #42a5f5;
+}
+
+#picker_layer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: rgba(0,0,0,0.1);
+  z-index: 99;
+}
+
+#picker_layer.hide {
+  display: none;
+}
+
+#picker_layer .picker {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  box-shadow: 0 2px 2px 0 rgba(0,0,0,0.16), 0 0 0 1px rgba(3, 1, 1, 0.08);
+}
+
+#picker_layer  .color_sure {
+  position: absolute;
+  top: 420px;
+  right: 107px;
+  padding: 5px 15px;
+  border-radius: 3px;
+  background: #4ad170;
+  color: #ffffff;
+  cursor: pointer;
+  z-index: 99;
+}
