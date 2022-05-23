@@ -7,29 +7,25 @@
   <title>地图建筑标注</title>
   <script src="https://projecteng.oss-cn-shanghai.aliyuncs.com/a9_js/react/16.14.0/react.production.min.js"></script>
   <script src="https://projecteng.oss-cn-shanghai.aliyuncs.com/a9_js/react/16.14.0/react-dom.production.min.js"></script>
-  <script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.15&key=9ff782c2cfceda7d8eebe3657151c8b1&plugin=AMap.PolyEditor"></script>
+  <script type="text/javascript">
+    window._AMapSecurityConfig = {
+      securityJsCode:'7524add9dffc67754dcf2f84056165ba',
+    };
+  </script>
+  <script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.15&key=9ff782c2cfceda7d8eebe3657151c8b1&plugin=AMap.PolyEditor,AMap.Geocoder"></script>
   <script src="https://cdn.bootcdn.net/ajax/libs/antd/4.19.2/antd.min.js"></script>
   <link href="https://cdn.bootcdn.net/ajax/libs/antd/4.19.2/antd.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="./index.css" />
+  <link rel="stylesheet" href="./index1.css" />
 </head>
 <body>
-  <div class="container">
-    <div class="side" id="side-toolName"></div>
-    <div class="map" id="map-toolName"></div>
-    <div class="save" id="save">保存</div>
-    <div id="picker_layer">
-      <div class="picker"></div>
-      <div class="color_sure">确定</div>
-    </div>
-  </div>
+  <textarea
+    id="map_{{{RECORD_ID}}}"
+    class="custom-app-map"
+    name="map_result"
+  ></textarea>
+  <div id="map-annotation-app_{{{RECORD_ID}}}" class="map-annotation-app"></div>
 </body>
 <script src="https://unpkg.com/uuid@latest/dist/umd/uuidv4.min.js"></script>
 <script src="https://projecteng.oss-cn-shanghai.aliyuncs.com/a9_js/turf.min.js"></script>
-<script src="./acolorpicker.js"></script>
-<script type="text/javascript">
-  window._AMapSecurityConfig = {
-    securityJsCode:'7524add9dffc67754dcf2f84056165ba',
-  }
-</script>
-<script src="./index.js"></script>
+<script src="./index1.js"></script>
 </html>

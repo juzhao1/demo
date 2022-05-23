@@ -44,6 +44,7 @@ function getCenter() {
 
 function init () {
   const center = getCenter();
+  console.log('center==>', center);
   data.map = AMap ? new AMap.Map('map-toolName', {
     resizeEnable: true,
     center: center,
@@ -55,7 +56,6 @@ function init () {
   if(data.map) {
     data.map.on('mousedown', mapMousedown);
     data.map.on('mousemove', mapMousemove);
-    data.map.on('keydown', mapKeydown);
     window.addEventListener('keydown', mapKeydown);
     document.getElementsByClassName('color_sure')[0].onclick = function () {
       if (data.selectClusterColor) {
