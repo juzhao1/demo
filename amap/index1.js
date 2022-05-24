@@ -115,13 +115,50 @@ class MapAnnotationApp extends React.Component {
       return;
     }
     this.map = AMap ? new AMap.Map('map-content_{{{RECORD_ID}}}', {
+      // resizeEnable: true,
+      // rotateEnable: true,
+      // center: this.center,
+      // zoom: 16,
+      // zooms: [4, 20],
+      // expandZoomRange: true,
+      // // 隐藏默认楼块
+      // features: ['bg', 'road', 'point'],
+      // // mapStyle: 'amap://styles/light',
+      // layers: [
+      //   // 高德默认标准图层
+      //   new AMap.TileLayer({
+      //     zooms: [3,20],    //可见级别
+      //     visible: true,    //是否可见
+      //     opacity: 1,       //透明度
+      //     zIndex: 1         //叠加层级
+      //   }),
+      //   // 楼块图层
+      //   new AMap.Buildings({
+      //       zooms: [12, 20],
+      //       zIndex: 10,
+      //       heightFactor: 10
+      //   })
+      // ],
+      viewMode: '3D',
       resizeEnable: true,
       rotateEnable: true,
       center: this.center,
       zoom: 16,
-      expandZoomRange: true
+      zooms: [6, 20],
+      expandZoomRange: true,
+      features: ['bg', 'road', 'point'],
+      layers: [
+        // 高德默认标准图层
+        new AMap.TileLayer(),
+        // 楼块图层
+        new AMap.Buildings({
+            zooms: [16, 20],
+            zIndex: 10,
+            heightFactor: 2
+        })
+      ],
     }) : undefined;
-    this.geo = new AMap.Geocoder();
+    this.geo = AMap.Geocoder ? new AMap.Geocoder() : undefined;
 
     this.loadData();
     this.initKeyEvent();
@@ -143,6 +180,8 @@ class MapAnnotationApp extends React.Component {
           this.handleLabel();
         } else if (key === 'keyd') {
           this.handleAddress();
+        } else if (key === 'keyh') {
+          this.handleHeight();
         }
       }
       if (!this.isCreate) {
@@ -363,7 +402,7 @@ class MapAnnotationApp extends React.Component {
     if (fix) {
       const rotate =  Math.atan((p2.lat - p1.lat)/(p2.lng - p1.lng));
       const { geometry: { coordinates } } = turf.midpoint(turf.point([p1.lng, p1.lat]), turf.point([p2.lng, p2.lat]));
-      this.toggleFix(new AMap.LngLat(coordinates[0]-(Math.sin(rotate) * 0.001), coordinates[1]+(Math.cos(rotate) * 0.001)), rotate * 180 / Math.PI);
+      this.toggleFix(new AMap.LngLat(coordinates[0]-(Math.sin(rotate) * 0.0002), coordinates[1]+(Math.cos(rotate) * 0.0002)), rotate * 180 / Math.PI);
     }
   }
 
@@ -598,6 +637,18 @@ class MapAnnotationApp extends React.Component {
       }
   }
 
+  handleHeight = () => {
+    const { instances, selectedId } = this.state;
+    const selectedInstance = instances[selectedId];
+    if (selectedInstance) {
+      const { id, label, height } = selectedInstance;
+      const input = prompt(`${label} 高度：`, height || 0);
+      if (input !== height && input !== null) {
+        this.setInstance(id, { ...selectedInstance, height: input })
+      }
+    }
+  }
+
   handleAddress = () => {
     const { instances, selectedId } = this.state;
       const selectedInstance = instances[selectedId];
@@ -612,6 +663,7 @@ class MapAnnotationApp extends React.Component {
   
   getAddress = (lnglat) => {
     return new Promise((resolve, reject) => {
+      if (!this.geo) resolve('未知');
       this.geo.getAddress(lnglat, function(status, result) {
         if (status === 'complete' && result.info === 'OK') {
           const { addressComponent: { province, city, district, street, streetNumber, building } } = result.regeocode;
@@ -642,7 +694,7 @@ class MapAnnotationApp extends React.Component {
         this.map.setRotation(rotate);
         this.map.setCenter(center);
         this.map.setPitch(35);
-        this.map.setZoom(18);
+        this.map.setZoom(20);
       }
       this.map.set('zoomEnable', !this.fixedCamera);
       this.map.set('pitchEnable', !this.fixedCamera);
@@ -708,7 +760,8 @@ class MapAnnotationApp extends React.Component {
                     onClick: () => { this.setSelectedId(v.id, v.category); }
                   },
                   `${v.label || '未命名'}`,
-                  React.createElement('div', {}, v.address)
+                  React.createElement('div', {}, v.address),
+                  v.height && React.createElement('div', {}, `高：${v.height}`)
                 )
               )
           ),
