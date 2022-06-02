@@ -62,222 +62,214 @@ class MapAnnotationApp extends React.Component {
    * 测量相关
    */
   horizontalLine = [];
+  horizontalData = {};
   verticalLine = [];
+  horizontalMouse = [];
+  verticalMouse = [];
   fixedCamera = false;
   startRanging = false;
 
   rulerLine = null;
+  
+  container = null;
 
   constructor() {
-    super();
-    this.state = {
-      instances: {},
-      selectedId: undefined,
-      selectedCategory: '',
-      loading: true,
-    };
+      super();
+      this.state = {
+          instances: {},
+          selectedId: undefined,
+          selectedCategory: '',
+          loading: true,
+      };
   }
 
   componentWillMount() {
-    console.log('payload==>', payload);
-    console.log('{{TOOL_MODE}}', '{{JOB_ID}}');
-    const { instances, center, bounds, categories } = payload;
-    // 加载标注结果/预标注数据
-    if (instances) {
-      const instanceMap = {};
-      (typeof instances === 'string' ? JSON.parse(instances) : instances).forEach(async (i) => {
-        instanceMap[i.id] = i;
-      });
-      this.setState({ instances: instanceMap });
-    }
-    if (center) {
-      this.center = typeof center === 'string' ? JSON.parse(center) : center;
-    }
-    if (bounds) {
-      this.bounds = typeof bounds === 'string' ? JSON.parse(bounds) : bounds;
-    }
-    if (categories) {
-      this.categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
-    }
-    
-    this.setState({ selectedCategory: this.categories[0] })
+      console.log('payload==>', payload);
+      console.log('{{TOOL_MODE}}', '{{JOB_ID}}');
+      const { instances, center, bounds, categories } = payload;
+      // 加载标注结果/预标注数据
+      if (instances) {
+        const instanceMap = {};
+        (typeof instances === 'string' ? JSON.parse(instances) : instances).forEach(async (i) => {
+          instanceMap[i.id] = i;
+        });
+        this.setState({ instances: instanceMap });
+      }
+      if (center) {
+        this.center = typeof center === 'string' ? JSON.parse(center) : center;
+      }
+      if (bounds) {
+        this.bounds = typeof bounds === 'string' ? JSON.parse(bounds) : bounds;
+      }
+      if (categories) {
+        this.categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
+      }
+      
+      this.setState({ selectedCategory: this.categories[0] })
   }
 
   componentDidMount() {
-    AMap = window.AMap;
-    this.initMap();
+      AMap = window.AMap;
+      this.initMap();
+      this.container = document.getElementById('map-annotation-app_{{{RECORD_ID}}}');
   }
+  
+  handleScreenFull = () => {
+      if (this.container) {
+          this.container.requestFullscreen();
+          // screenfull.toggle(this.container);
+      }
+  };
 
   initMap = () => {
-    if (!AMap) {
-      alert('地图加载失败！');
-      this.setState({ loading: false });
-      return;
-    }
-    this.map = AMap ? new AMap.Map('map-content_{{{RECORD_ID}}}', {
-      // resizeEnable: true,
-      // rotateEnable: true,
-      // center: this.center,
-      // zoom: 16,
-      // zooms: [4, 20],
-      // expandZoomRange: true,
-      // // 隐藏默认楼块
-      // features: ['bg', 'road', 'point'],
-      // // mapStyle: 'amap://styles/light',
-      // layers: [
-      //   // 高德默认标准图层
-      //   new AMap.TileLayer({
-      //     zooms: [3,20],    //可见级别
-      //     visible: true,    //是否可见
-      //     opacity: 1,       //透明度
-      //     zIndex: 1         //叠加层级
-      //   }),
-      //   // 楼块图层
-      //   new AMap.Buildings({
-      //       zooms: [12, 20],
-      //       zIndex: 10,
-      //       heightFactor: 10
-      //   })
-      // ],
-      viewMode: '3D',
-      resizeEnable: true,
-      rotateEnable: true,
-      center: this.center,
-      zoom: 16,
-      zooms: [6, 20],
-      expandZoomRange: true,
-      features: ['bg', 'road', 'point'],
-      layers: [
-        // 高德默认标准图层
-        new AMap.TileLayer(),
-        // 楼块图层
-        new AMap.Buildings({
-            zooms: [16, 20],
-            zIndex: 10,
-            heightFactor: 2
-        })
-      ],
-    }) : undefined;
-    this.geo = AMap.Geocoder ? new AMap.Geocoder() : undefined;
+      if (!AMap) {
+        alert('地图加载失败！');
+        this.setState({ loading: false });
+        return;
+      }
+      this.map = AMap ? new AMap.Map('map-content_{{{RECORD_ID}}}', {
+        viewMode: '3D',
+        resizeEnable: true,
+        rotateEnable: true,
+        center: this.center,
+        zoom: 16,
+        zooms: [6, 20],
+        expandZoomRange: true,
+        features: ['bg', 'road', 'point'],
+        layers: [
+          // 高德默认标准图层
+          new AMap.TileLayer(),
+          // 楼块图层
+          new AMap.Buildings({
+              zooms: [16, 20],
+              zIndex: 10,
+              heightFactor: 1
+          })
+        ],
+      }) : undefined;
+      this.geo = AMap.Geocoder ? new AMap.Geocoder() : undefined;
+  
+      this.loadData();
+      this.initKeyEvent();
+  }
 
-    this.loadData();
-    this.initKeyEvent();
-  }
-  
   initKeyEvent = () => {
-    document.addEventListener('keydown', (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-      const key = e.code.toLocaleLowerCase();
-      if (!this.startRanging) {
-        if (key === 'space') {
-          this.handleCreate();
-        } else if (key === 'enter') {
-          this.createComplete();
-        } else if (key === 'backspace' || key === 'delete') {
-          this.deleteInstance()
-        } else if (key === 'keyo') {
-          this.handleLabel();
-        } else if (key === 'keyd') {
-          this.handleAddress();
-        } else if (key === 'keyh') {
-          this.handleHeight();
-        }
-      }
-      if (!this.isCreate) {
-        if (key === 'keym') {
-          this.toggleRanging();
-        }
-      }
-    });
-    this.map.on('mousedown', this.mapMouseDown, true);
-    this.map.on('mousemove', this.mapMouseMove, true);
-  }
-  
-  loadData = async () => {
-    const remoteBackup = document.getElementById('map_{{{RECORD_ID}}}').value;
-    const localBackup = window.localStorage.getItem(`${this.toolName}_{{JOB_ID}}_{{TASK_ID}}_{{RECORD_ID}}_{{WORKER_ID}}`);
-    let instanceMap;
-    if (localBackup || remoteBackup !== '') {
-        instanceMap = {};
-        const { bounds, center, instances } = JSON.parse(localBackup || remoteBackup);
-        for (let i = 0; i < instances.length; i += 1) {
-          const instance = instances[i];
-          let address = instance.address;
-          if (address === undefined) {
-            const turfPolygon = turf.polygon([[...instance.lnglats, [...instance.lnglats[0]]]]);
-            const centroid = turf.centerOfMass(turfPolygon);
-            if (centroid) {
-              const { geometry: { coordinates } } = centroid;
-              address = await this.getAddress(coordinates);
-            }
+      document.addEventListener('keydown', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        const key = e.code.toLocaleLowerCase();
+        if (!this.startRanging) {
+          if (key === 'space') {
+            this.handleCreate();
+          } else if (key === 'enter') {
+            this.createComplete();
+          } else if (key === 'backspace' || key === 'delete') {
+            this.deleteInstance()
+          } else if (key === 'keyo') {
+            this.handleLabel();
+          } else if (key === 'keyd') {
+            this.handleAddress();
+          } else if (key === 'keyh') {
+              this.handleHeight();
           }
-          instanceMap[instance.id] = {
-            ...instance,
-            address,
-          };
         }
-        this.bounds = bounds;
-        this.center = center;
-    }
-    this.setState({
-      ...instanceMap && {
-        instances: instanceMap
-      },
-      toolMode: isQA('{{TOOL_MODE}}') ? 'QA' : 'NOT_QA',
-      loading: false,
-    }, () => {
-      if (instanceMap) {
-          this.drawShapes();
-      } else {
-          this.initBounds();
+        if (!this.isCreate) {
+          if (key === 'keym') {
+            this.toggleRanging();
+          }
+        }
+      });
+      this.map.on('mousedown', this.mapMouseDown, true);
+      this.map.on('mousemove', this.mapMouseMove, true);
+  }
+
+  loadData = async () => {
+      const remoteBackup = document.getElementById('map_{{{RECORD_ID}}}').value;
+      const localBackup = window.localStorage.getItem(`${this.toolName}_{{JOB_ID}}_{{TASK_ID}}_{{RECORD_ID}}_{{WORKER_ID}}`);
+      let instanceMap;
+      if (localBackup || remoteBackup !== '') {
+          instanceMap = {};
+          const { bounds, center, instances } = JSON.parse(localBackup || remoteBackup);
+          for (let i = 0; i < instances.length; i += 1) {
+            const instance = instances[i];
+            let address = instance.address;
+            if (address === undefined) {
+              const turfPolygon = turf.polygon([[...instance.lnglats, [...instance.lnglats[0]]]]);
+              const centroid = turf.centerOfMass(turfPolygon);
+              if (centroid) {
+                const { geometry: { coordinates } } = centroid;
+                address = await this.getAddress(coordinates);
+              }
+            }
+            instanceMap[instance.id] = {
+              ...instance,
+              address,
+            };
+          }
+          this.bounds = bounds;
+          this.center = center;
       }
-    });
+      this.setState({
+        ...instanceMap && {
+          instances: instanceMap
+        },
+        toolMode: isQA('{{TOOL_MODE}}') ? 'QA' : 'NOT_QA',
+        loading: false,
+      }, () => {
+        if (instanceMap) {
+            this.drawShapes();
+        } else {
+            this.initBounds();
+        }
+      });
   }
 
   clear = () => {
     this.map.clearMap();
+    this.horizontalData = {};
     this.horizontalLine = [];
     this.verticalLine = [];
+    this.horizontalMouse = [];
+    this.verticalMouse = [];
   }
-  
+
   drawShapes = () => {
-    if (!AMap) return;
-      const { instances: instanceMap, selectedId } = this.state; 
-      const { overlayOptions } = payload
-      const instances = Object.values(instanceMap);
-      this.clear();
-      this.initBounds();
-      for (let i = 0; i < instances.length; i++) {
-        const { id, lnglats, label, category } = instances[i];
-        const shapePoints = lnglats.map((point) => new AMap.LngLat(point[0], point[1]));
-        const polygon = new AMap.Polygon({
-          path: shapePoints,
-          ...overlayOptions,
-          fillOpacity: 0.1,
-        });
-        polygon.id = id;
-        polygon.category = category;
-        polygon.on('click', () => {
-          if (!this.isCreate) {
-            this.setSelectedId(id, category);
+      if (!AMap) return;
+        const { instances: instanceMap, selectedId } = this.state; 
+        const { overlayOptions } = payload
+        const instances = Object.values(instanceMap);
+        this.clear();
+        this.initBounds();
+        for (let i = 0; i < instances.length; i++) {
+          const { id, lnglats, label, category } = instances[i];
+          const shapePoints = lnglats.map((point) => new AMap.LngLat(point[0], point[1]));
+          const polygon = new AMap.Polygon({
+            path: shapePoints,
+            ...overlayOptions,
+            fillOpacity: 0.1,
+          });
+          polygon.id = id;
+          polygon.category = category;
+          polygon.on('click', () => {
+            if (!this.isCreate) {
+              this.setSelectedId(id, category);
+            }
+          });
+          this.map.add(polygon);
+  
+          if (label) {
+            const turfPolygon = turf.polygon([[...lnglats, [...lnglats[0]]]]);
+            const centroid = turf.centerOfMass(turfPolygon);
+            if (centroid) {
+              const { geometry: { coordinates } } = centroid;
+              this.createLabel(`${category}-${label}`, coordinates, `label_${id}`);
+            }
           }
-        });
-        this.map.add(polygon);
 
-        if (label) {
-          const turfPolygon = turf.polygon([[...lnglats, [...lnglats[0]]]]);
-          const centroid = turf.centerOfMass(turfPolygon);
-          if (centroid) {
-            const { geometry: { coordinates } } = centroid;
-            this.createLabel(`${category}-${label}`, coordinates, `label_${id}`);
+          if (id === selectedId) {
+            this.handleEditPoly(polygon);
+            this.setSelectedOverlay(polygon);
           }
-        }
-
-        if (id === selectedId) {
-          this.handleEditPoly(polygon);
-          this.setSelectedOverlay(polygon);
-        }
       }
   }
 
@@ -295,19 +287,19 @@ class MapAnnotationApp extends React.Component {
   }
 
   polyonUpdate =(e) => {
-    const { instances } = this.state; 
-    const { target } = e;
-    if (target) {
-      const { id } = target;
-      const points = target.getPath().map((p) => ([p.lng, p.lat]));
-      const instance = instances[id] ? {...instances[id]} : undefined;
-      if (instance) {
-        instance.lnglats = points;
-        this.setInstance(id, instance);
+      const { instances } = this.state; 
+      const { target } = e;
+      if (target) {
+        const { id } = target;
+        const points = target.getPath().map((p) => ([p.lng, p.lat]));
+        const instance = instances[id] ? {...instances[id]} : undefined;
+        if (instance) {
+          instance.lnglats = points;
+          this.setInstance(id, instance);
+        }
       }
-    }
   }
-  
+
   initBounds = () => {
     if (!AMap) return;
       const shapePoints = this.bounds.map((point) => new AMap.LngLat(point[0], point[1]));
@@ -315,16 +307,16 @@ class MapAnnotationApp extends React.Component {
         path: shapePoints,
         strokeWeight: 2,
         strokeColor: '#008a45',
-        fillColor: '#008a45',
+        fillColor: '#8250df',
         strokeStyle: 'dashed',
-        fillOpacity: 0.02,
+        fillOpacity: 0.06,
       });
       this.map.add(boundaryPolygon);
       boundaryPolygon.on('mouseout', this.mouseOut);
       boundaryPolygon.on('mousemove', this.mouseMove);
       boundaryPolygon.on('mouseover', this.mouseOver);
   }
-  
+
   mouseMove = () => {
     if (!this.enableCreate) {
       this.enableCreate = true;
@@ -333,12 +325,15 @@ class MapAnnotationApp extends React.Component {
   mouseOut = () => {
     this.enableCreate = false;
   }
-  
+
   mouseOver = () => {
-    this.enableCreate = true;
+      this.enableCreate = true;
   }
-  
-  mapMouseDown = ({ lnglat }) => {
+
+  mapMouseDown = (e) => {
+    console.log(this.map.getPitch())
+    const { lnglat, originEvent } = e;
+    const pixelPoint = { x: originEvent.clientX, y: originEvent.clientY };
     if (!AMap) return;
     if (this.isCreate) {
       if(this.enableCreate) {
@@ -366,43 +361,59 @@ class MapAnnotationApp extends React.Component {
       this.map.add(marker);
       if (this.horizontalLine.length === 0) {
         this.horizontalLine.push(point);
+        this.horizontalMouse.push(pixelPoint);
       } else if (this.horizontalLine.length === 1) {
         this.horizontalLine.push(point);
-        this.createLine(...this.horizontalLine, false, true);
-        this.createRulerLine();
-      } else if (this.verticalLine.length === 0) {
+        this.horizontalMouse.push(pixelPoint);
         this.verticalLine.push(point);
+        this.verticalMouse.push(pixelPoint);
+        this.createLine(this.horizontalLine, this.horizontalMouse, true);
+        this.createRulerLine();
       } else if (this.verticalLine.length === 1) {
         this.verticalLine.push(point);
-        this.createLine(...this.verticalLine, true);
+        this.verticalMouse.push(pixelPoint);
+        this.createLine(this.verticalLine, this.verticalMouse);
         this.createRulerLine();
         this.clearTip();
       }
+
+      // else if (this.verticalLine.length === 0) {
+      //   this.verticalLine.push(point);
+      //   this.verticalMouse.push(pixelPoint);
+      // }
     }
   }
 
-  createLine(p1,p2, showLabel, fix) {
+  createLine(line, mouse, fix) {
+    const [p1,p2] = line;
+    const [m1, m2] = mouse;
     const dis = AMap.GeometryUtil.distance([p1.lng, p1.lat], [p2.lng, p2.lat]);
+    const pixel = Math.floor(Math.sqrt((m1.x-m2.x)**2 + (m1.y-m2.y)**2));
+    let height = '';
+    if (fix) {
+      this.horizontalData = {dis,pixel};
+    } else {
+      height = Math.floor((pixel/this.horizontalData.pixel)*this.horizontalData.dis);
+      // height = Math.floor(height / Math.sin(this.map.getPitch()));
+    }
     const polyline = new AMap.Polyline({
       path: [p1, p2],
       strokeColor: '#B2CEFE', // 线条颜色
     });
     this.map.add(polyline);
-    if (showLabel) {
-      const center = new AMap.LngLat((p1.lng + p2.lng)/2, (p1.lat + p2.lat)/2);
-      const tip = new AMap.Text({
-        text: `${Math.floor(dis)} 米`,
-        clickable: false,
-        offset: new AMap.Pixel(50, -20),
-        position: center
-      });
-      tip.setStyle({ transform: 'translate(-50%, 50%)', fontSize: '12px' });
-      this.map.add(tip);
-    }
+    const center = new AMap.LngLat((p1.lng + p2.lng)/2, (p1.lat + p2.lat)/2);
+    const tip = new AMap.Text({
+      text: `lnglat: ${Math.floor(dis)} 米, pixel: ${pixel}px ${height? ', height: ' + height +' 米' : ''}`,
+      clickable: false,
+      position: center
+    });
+    tip.setStyle({ transform: 'translate(-50%, 50%)', fontSize: '12px' });
+    this.map.add(tip);
     if (fix) {
-      const rotate =  Math.atan((p2.lat - p1.lat)/(p2.lng - p1.lng));
-      const { geometry: { coordinates } } = turf.midpoint(turf.point([p1.lng, p1.lat]), turf.point([p2.lng, p2.lat]));
-      this.toggleFix(new AMap.LngLat(coordinates[0]-(Math.sin(rotate) * 0.0002), coordinates[1]+(Math.cos(rotate) * 0.0002)), rotate * 180 / Math.PI);
+      // const rotate =  Math.atan((p2.lat - p1.lat)/(p2.lng - p1.lng));
+      // const { geometry: { coordinates } } = turf.midpoint(turf.point([p1.lng, p1.lat]), turf.point([p2.lng, p2.lat]));
+      // this.toggleFix(new AMap.LngLat(coordinates[0]-(Math.sin(rotate) * 0.002), coordinates[1]+(Math.cos(rotate) * 0.002)), (rotate + 0.05) * 180 / Math.PI);
+      this.toggleFix();
     }
   }
 
@@ -484,7 +495,7 @@ class MapAnnotationApp extends React.Component {
       this.map.setDefaultCursor('grab');
     }
   }
-  
+
   setSelectedId = (id, c) => {
     this.setSelectedCategory(c);
     if (id !== this.state.selectedId) {
@@ -495,7 +506,7 @@ class MapAnnotationApp extends React.Component {
         })
     }
   }
-  
+
   setSelectedCategory = (c) => {
       if (c !== this.state.selectedCategory) {
           this.setState({
@@ -521,7 +532,7 @@ class MapAnnotationApp extends React.Component {
     }
     this.setSelectedId(overlay?.id, overlay?.category || this.state.selectedCategory);
   }
-  
+
   createLabel = (label, point, className) => {
     const labelPoint = new AMap.LngLat(point[0], point[1])
     const tip = new AMap.Text({
@@ -568,7 +579,7 @@ class MapAnnotationApp extends React.Component {
         this.drawShapes();
       }
   }
-  
+
   handleCreate = () => {
     if (!this.startRanging) {
       const { instances } = this.state;
@@ -611,7 +622,7 @@ class MapAnnotationApp extends React.Component {
         }
       }
   }
-  
+
   handleLabel = () => {
       const { instances, selectedId } = this.state;
       const selectedInstance = instances[selectedId];
@@ -636,7 +647,7 @@ class MapAnnotationApp extends React.Component {
         }
       }
   }
-
+  
   handleHeight = () => {
     const { instances, selectedId } = this.state;
     const selectedInstance = instances[selectedId];
@@ -660,7 +671,7 @@ class MapAnnotationApp extends React.Component {
         }
       }
   }
-  
+
   getAddress = (lnglat) => {
     return new Promise((resolve, reject) => {
       if (!this.geo) resolve('未知');
@@ -690,12 +701,12 @@ class MapAnnotationApp extends React.Component {
   toggleFix(center, rotate) {
     this.fixedCamera = !this.fixedCamera;
     if (this.map) {
-      if (this.fixedCamera && center) {
-        this.map.setRotation(rotate);
-        this.map.setCenter(center);
-        this.map.setPitch(35);
-        this.map.setZoom(20);
-      }
+      // if (this.fixedCamera && center) {
+      //   this.map.setRotation(rotate);
+      //   this.map.setCenter(center);
+      //   this.map.setPitch(60);
+      //   this.map.setZoom(18);
+      // }
       this.map.set('zoomEnable', !this.fixedCamera);
       this.map.set('pitchEnable', !this.fixedCamera);
       this.map.set('rotateEnable', !this.fixedCamera);
@@ -776,18 +787,30 @@ class MapAnnotationApp extends React.Component {
       ),
       React.createElement(
         'div',
-        {
-          className: 'save-btn',
-          onClick: () => { this.saveData('save'); }
-        },
-        '保存'
+        { className: 'tool_box' },
+        React.createElement(
+            'div',
+            {
+              className: 'save-btn btn',
+              onClick: () => { this.saveData('save'); }
+            },
+            '保存'
+        ),
+        React.createElement(
+            'div',
+            {
+              className: 'screenfull-btn btn',
+              onClick: this.handleScreenFull
+            },
+            '进入全屏(esc 退出)'
+        ),
       ),
       React.createElement(
         'div',
         {
           className: 'map-tip',
         },
-        'Space: 开始新建；Enter：新建完成；Delete/BackSpace：删除；o：编辑名称；d：编辑地址；m：进入/退出测量；'
+        'Space: 开始新建；Enter：新建完成；Delete/BackSpace：删除；o：编辑名称；d：编辑地址；m：进入/退出测量；h：编辑高度属性；'
       ),
       this.state.loading && React.createElement('div', {
         className: 'loading'
@@ -795,6 +818,7 @@ class MapAnnotationApp extends React.Component {
     );
   }
 }
+
 
 window.onload = () => {
   ReactDOM.render(React.createElement(MapAnnotationApp, { payload }), document.getElementById('map-annotation-app_{{{RECORD_ID}}}'));
